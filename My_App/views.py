@@ -5,7 +5,8 @@ from rest_framework.decorators import api_view
 from rest_framework.response import Response
 
 from My_App.forms import Person_Form
-from My_App.serializers import PersonSerializer
+from My_App.models import User
+from My_App.serializers import PersonSerializer, UserSerializer
 
 
 # Create your views here.
@@ -38,9 +39,22 @@ def show_users(request):
 
     users = []
     if response.status_code == 200:
-        users = response.json()
+        users_data = response.json()
+        users = users_data
+
+        for user_data in users_data:
+
+            if not User.objects.filter(username=user_data['username']).exists():
+                User.objects.create(
+                    name=user_data['name'],
+                    username=user_data['username'],
+                    email=user_data['email'],
+                    phone=user_data['phone'],
+                    website=user_data['website']
+                )
 
     return render(request, 'view_users.html', {'users': users})
+
 
 @api_view(['GET'])
 def users_api(request):
@@ -49,9 +63,22 @@ def users_api(request):
 
     if response.status_code == 200:
         data = response.json()
-        return Response(data, status=status.HTTP_200_OK)
-    else:
-        return Response(
-            {"error": "Failed to fetch data from external API"},
-            status=status.HTTP_502_BAD_GATEWAY
-        )
+
+        for user_data in data:
+
+            if not User.objects.filter(username=user_data['username']).exists():
+                User.objects.create(
+                    name=user_data['name'],
+                    username=user_data['username'],
+                    email=user_data['email'],
+                    phone=user_data['phone'],
+                    website=user_data['website']
+                )
+
+        users = User.objects.all()
+        serializer = UserSerializer(users, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    return Response(
+        {"error": "Failed to fetch data from external API"},
+        status=status.HTTP_502_BAD_GATEWAY
+    )
